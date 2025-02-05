@@ -102,10 +102,6 @@ char *strchr(char*,char);
 # define NORMALIZE_UTF8PATH 0
 #endif
 
-// --------- [Enclose.IO Hack start] ---------
-#include "enclose_io.h"
-// --------- [Enclose.IO Hack end] ---------
-
 #include "encindex.h"
 #include "id.h"
 #include "internal.h"
@@ -2299,7 +2295,7 @@ glob_helper(
 #endif
 	    break;
 	  case BRACE:
-	    if (!recursive || strchr(p->str, '/')) {
+	    if (!recursive) {
 		brace = 1;
 	    }
 	    break;

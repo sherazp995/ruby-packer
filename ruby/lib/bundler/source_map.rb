@@ -2,12 +2,11 @@
 
 module Bundler
   class SourceMap
-    attr_reader :sources, :dependencies, :locked_specs
+    attr_reader :sources, :dependencies
 
-    def initialize(sources, dependencies, locked_specs)
+    def initialize(sources, dependencies)
       @sources = sources
       @dependencies = dependencies
-      @locked_specs = locked_specs
     end
 
     def pinned_spec_names(skip = nil)
@@ -51,18 +50,6 @@ module Bundler
           dep_source = dep.source || default
           dep_source.add_dependency_names(dep.name)
           requirements[dep.name] = dep_source
-        end
-        requirements
-      end
-    end
-
-    def locked_requirements
-      @locked_requirements ||= begin
-        requirements = {}
-        locked_specs.each do |locked_spec|
-          source = locked_spec.source
-          source.add_dependency_names(locked_spec.name)
-          requirements[locked_spec.name] = source
         end
         requirements
       end

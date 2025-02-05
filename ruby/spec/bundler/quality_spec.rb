@@ -151,6 +151,7 @@ RSpec.describe "The library itself" do
       git.allow_insecure
       inline
       trust-policy
+      use_gem_version_promoter_for_major_updates
     ]
 
     all_settings = Hash.new {|h, k| h[k] = [] }

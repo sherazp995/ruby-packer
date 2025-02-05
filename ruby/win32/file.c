@@ -11,10 +11,6 @@
 #include <shlwapi.h>
 #include "win32/file.h"
 
-// --------- [Enclose.IO Hack start] ---------
-#include "enclose_io.h"
-// --------- [Enclose.IO Hack end] ---------
-
 #ifndef INVALID_FILE_ATTRIBUTES
 # define INVALID_FILE_ATTRIBUTES ((DWORD)-1)
 #endif

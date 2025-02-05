@@ -30,5 +30,6 @@ Gem::Specification.new do |spec|
   spec.bindir        = "exe"
   spec.require_paths = ["lib"]
 
+  spec.add_dependency "net-protocol"
   spec.add_dependency "uri"
 end

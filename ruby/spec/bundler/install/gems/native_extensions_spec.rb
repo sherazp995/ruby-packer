@@ -1,13 +1,12 @@
 # frozen_string_literal: true
 
-RSpec.describe "installing a gem with native extensions" do
+RSpec.describe "installing a gem with native extensions", :ruby_repo do
   it "installs" do
     build_repo2 do
       build_gem "c_extension" do |s|
         s.extensions = ["ext/extconf.rb"]
         s.write "ext/extconf.rb", <<-E
           require "mkmf"
-          $extout = "$(topdir)/" + RbConfig::CONFIG["EXTOUT"] unless RUBY_VERSION < "2.4"
           name = "c_extension_bundle"
           dir_config(name)
           raise "OMG" unless with_config("c_extension") == "hello"
@@ -52,7 +51,6 @@ RSpec.describe "installing a gem with native extensions" do
       s.extensions = ["ext/extconf.rb"]
       s.write "ext/extconf.rb", <<-E
         require "mkmf"
-        $extout = "$(topdir)/" + RbConfig::CONFIG["EXTOUT"] unless RUBY_VERSION < "2.4"
         name = "c_extension_bundle"
         dir_config(name)
         raise "OMG" unless with_config("c_extension") == "hello"
@@ -97,7 +95,6 @@ RSpec.describe "installing a gem with native extensions" do
           s.extensions = ["ext/extconf.rb"]
           s.write "ext/extconf.rb", <<-E
             require "mkmf"
-            $extout = "$(topdir)/" + RbConfig::CONFIG["EXTOUT"] unless RUBY_VERSION < "2.4"
             name = "c_extension_bundle_#{n}"
             dir_config(name)
             raise "OMG" unless with_config("c_extension_#{n}") == "#{n}"
@@ -150,7 +147,6 @@ RSpec.describe "installing a gem with native extensions" do
       s.extensions = ["ext/extconf.rb"]
       s.write "ext/extconf.rb", <<-E
         require "mkmf"
-        $extout = "$(topdir)/" + RbConfig::CONFIG["EXTOUT"] unless RUBY_VERSION < "2.4"
         name = "c_extension_bundle"
         dir_config(name)
         raise "OMG" unless with_config("c_extension") == "hello" && with_config("c_extension_bundle-dir") == "hola"

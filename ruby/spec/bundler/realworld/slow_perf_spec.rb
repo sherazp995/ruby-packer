@@ -11,23 +11,12 @@ RSpec.describe "bundle install with complex dependencies", :realworld => true do
       gem "mongoid", ">= 0.10.2"
     G
 
-    expect { bundle "lock" }.to take_less_than(18) # seconds
-  end
+    start_time = Time.now
 
-  it "resolves quickly (case 2)" do
-    gemfile <<-G
-      source "https://rubygems.org"
+    bundle "lock"
 
-      gem 'metasploit-erd'
-      gem 'rails-erd'
-      gem 'yard'
+    duration = Time.now - start_time
 
-      gem 'coveralls'
-      gem 'rails'
-      gem 'simplecov'
-      gem 'rspec-rails'
-    G
-
-    expect { bundle "lock" }.to take_less_than(18) # seconds
+    expect(duration.to_f).to be < 12 # seconds
   end
 end

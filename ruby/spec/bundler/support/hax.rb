@@ -1,10 +1,5 @@
 # frozen_string_literal: true
 
-if ENV["BUNDLER_SPEC_RUBY_PLATFORM"]
-  Object.send(:remove_const, :RUBY_PLATFORM)
-  RUBY_PLATFORM = ENV["BUNDLER_SPEC_RUBY_PLATFORM"]
-end
-
 module Gem
   def self.ruby=(ruby)
     @ruby = ruby
@@ -17,10 +12,6 @@ module Gem
   if ENV["BUNDLER_GEM_DEFAULT_DIR"]
     @default_dir = ENV["BUNDLER_GEM_DEFAULT_DIR"]
     @default_specifications_dir = nil
-  end
-
-  if ENV["BUNDLER_SPEC_WINDOWS"]
-    @@win_platform = true # rubocop:disable Style/ClassVars
   end
 
   if ENV["BUNDLER_SPEC_PLATFORM"]

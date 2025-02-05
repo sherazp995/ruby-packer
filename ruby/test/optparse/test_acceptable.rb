@@ -1,7 +1,7 @@
 # frozen_string_literal: false
 require_relative 'test_optparse'
 
-class TestOptionParserAcceptable < TestOptionParser
+class TestOptionParser::Acceptable < TestOptionParser
 
   def setup
     super

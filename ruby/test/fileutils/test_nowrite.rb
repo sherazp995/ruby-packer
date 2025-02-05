@@ -8,7 +8,7 @@ require_relative 'visibility_tests'
 class TestFileUtilsNoWrite < Test::Unit::TestCase
 
   include FileUtils::NoWrite
-  include TestFileUtilsIncVisibility
+  include TestFileUtilsInc::Visibility
 
   def setup
     super

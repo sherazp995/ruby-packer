@@ -1,8 +1,8 @@
 GIT
   remote: https://github.com/kern/minitest-reporters.git
-  revision: 9cb9e78aed69bfe4eed6c27b5b795e8bb4ad708f
+  revision: 265ff4b40d5827e84d7e902b808fbee860b61221
   specs:
-    minitest-reporters (1.4.2)
+    minitest-reporters (1.7.1)
       ansi
       builder
       minitest (>= 5.0)
@@ -11,44 +11,48 @@ GIT
 GEM
   remote: https://rubygems.org/
   specs:
-    activesupport (6.0.3.2)
+    activesupport (6.1.7.10)
       concurrent-ruby (~> 1.0, >= 1.0.2)
-      i18n (>= 0.7, < 2)
-      minitest (~> 5.1)
-      tzinfo (~> 1.1)
-      zeitwerk (~> 2.2, >= 2.2.2)
+      i18n (>= 1.6, < 2)
+      minitest (>= 5.1)
+      tzinfo (~> 2.0)
+      zeitwerk (~> 2.3)
     ansi (1.5.0)
-    builder (3.2.4)
+    builder (3.3.0)
     coderay (1.1.3)
-    concurrent-ruby (1.1.10)
-    i18n (1.8.3)
+    concurrent-ruby (1.3.5)
+    i18n (1.14.7)
       concurrent-ruby (~> 1.0)
-    method_source (1.0.0)
-    minitest (5.16.3)
-    pry (0.14.1)
+    json (2.9.1)
+    logger (1.6.5)
+    method_source (1.1.0)
+    minitest (5.25.4)
+    pry (0.14.2)
       coderay (~> 1.1)
       method_source (~> 1.0)
-    rake (13.0.6)
-    ruby-progressbar (1.10.1)
-    thread_safe (0.3.6)
-    tzinfo (1.2.7)
-      thread_safe (~> 0.1)
-    zeitwerk (2.4.0)
+    racc (1.8.1)
+    rake (13.2.1)
+    ruby-progressbar (1.13.0)
+    tzinfo (2.0.6)
+      concurrent-ruby (~> 1.0)
+    zeitwerk (2.6.18)
 
 PLATFORMS
-  mswin64
-  ruby
-  x64-mingw32
+  x86_64-linux
 
 DEPENDENCIES
-  activesupport (~> 6.0, >= 6.0.3.2)
+  activesupport (~> 6.1, >= 6.1.7)
+  bundler (~> 2.3)
+  json (~> 2.6)
+  logger (~> 1.5)
   minitest (~> 5.14, >= 5.14.1)
   minitest-reporters!
-  pry
-  rake
+  pry (~> 0.14.2)
+  racc (~> 1.6)
+  rake (~> 13.0)
 
 RUBY VERSION
-   ruby 3.1.3p185
+   ruby 3.1.2p20
 
 BUNDLED WITH
-   2.3.26
+   2.3.7

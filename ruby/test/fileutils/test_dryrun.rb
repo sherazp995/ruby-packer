@@ -8,7 +8,7 @@ require_relative 'visibility_tests'
 class TestFileUtilsDryRun < Test::Unit::TestCase
 
   include FileUtils::DryRun
-  include TestFileUtilsIncVisibility
+  include TestFileUtilsInc::Visibility
 
   def setup
     super

@@ -258,10 +258,6 @@ module Spec
       end
     end
 
-    def git_root
-      ruby_core? ? source_root : source_root.parent
-    end
-
     private
 
     def git_ls_files(glob)
@@ -280,6 +276,10 @@ module Spec
 
     def man_tracked_files_glob
       ruby_core? ? "man/bundle* man/gemfile*" : "lib/bundler/man/bundle*.1 lib/bundler/man/gemfile*.5"
+    end
+
+    def git_root
+      ruby_core? ? source_root : source_root.parent
     end
 
     def ruby_core_tarball?
@@ -310,10 +310,6 @@ module Spec
 
     def tool_dir
       source_root.join("tool/bundler")
-    end
-
-    def templates_dir
-      lib_dir.join("bundler", "templates")
     end
 
     extend self

@@ -2,9 +2,6 @@
 # -*- mode: ruby; coding: us-ascii -*-
 # frozen_string_literal: false
 
-module Gem; end # only needs Gem::Platform
-require 'rubygems/platform'
-
 # :stopdoc:
 $extension = nil
 $extstatic = nil
@@ -37,7 +34,6 @@ require 'rbconfig'
 
 $topdir = "."
 $top_srcdir = srcdir
-inplace = File.identical?($top_srcdir, $topdir)
 
 $" << "mkmf.rb"
 load File.expand_path("lib/mkmf.rb", srcdir)
@@ -66,17 +62,12 @@ end
 
 def atomic_write_open(filename)
   filename_new = filename + ".new.#$$"
-  clean = false
-  File.open(filename_new, "wbx") do |f|
-    clean = true
+  open(filename_new, "wb") do |f|
     yield f
   end
   if File.binread(filename_new) != (File.binread(filename) rescue nil)
     File.rename(filename_new, filename)
-    clean = false
-  end
-ensure
-  if clean
+  else
     File.unlink(filename_new)
   end
 end
@@ -155,7 +146,7 @@ def extmake(target, basedir = 'ext', maybestatic = true)
     top_srcdir = $top_srcdir
     topdir = $topdir
     hdrdir = $hdrdir
-    prefix = "../" * (basedir.count("/")+target.count("/")+1)
+    prefix = "../" * (target.count("/")+1)
     $top_srcdir = relative_from(top_srcdir, prefix)
     $hdrdir = relative_from(hdrdir, prefix)
     $topdir = prefix + $topdir
@@ -417,10 +408,8 @@ if CROSS_COMPILING
   $ruby = $mflags.defined?("MINIRUBY") || CONFIG['MINIRUBY']
 elsif sep = config_string('BUILD_FILE_SEPARATOR')
   $ruby = "$(topdir:/=#{sep})#{sep}miniruby" + EXEEXT
-elsif CONFIG['EXTSTATIC']
-  $ruby = '$(topdir)/miniruby' + EXEEXT
 else
-  $ruby = '$(topdir)/ruby' + EXEEXT
+  $ruby = '$(topdir)/miniruby' + EXEEXT
 end
 $ruby = [$ruby]
 $ruby << "-I'$(topdir)'"
@@ -432,7 +421,6 @@ end
 topruby = $ruby
 $ruby = topruby.join(' ')
 $mflags << "ruby=#$ruby"
-$builtruby = '$(topdir)/miniruby' + EXEEXT # Must be an executable path
 
 MTIMES = [__FILE__, 'rbconfig.rb', srcdir+'/lib/mkmf.rb'].collect {|f| File.mtime(f)}
 
@@ -472,11 +460,10 @@ for dir in ["ext", File::join($top_srcdir, "ext")]
 end unless $extstatic
 
 @gemname = nil
-if exts = ARGV.shift
-  ext_prefix = exts[%r[\A(?>\.bundle/)?[^/]+(?:/(?=(.+)?)|\z)]]
-  exts = $1
+if ARGV[0]
+  ext_prefix, exts = ARGV.shift.split('/', 2)
   $extension = [exts] if exts
-  if ext_prefix.start_with?('.')
+  if ext_prefix == 'gems'
     @gemname = exts
   elsif exts
     $static_ext.delete_if {|t, *| !File.fnmatch(t, exts)}
@@ -528,12 +515,9 @@ cond = proc {|ext, *|
     exts.delete_if {|d| File.fnmatch?("-*", d)}
   end
 end
-ext_prefix = ext_prefix[$top_srcdir.size+1..-2]
+ext_prefix = File.basename(ext_prefix)
 
-@ext_prefix = ext_prefix
-@inplace = inplace
 extend Module.new {
-
   def timestamp_file(name, target_prefix = nil)
     if @gemname and name == '$(TARGET_SO_DIR)'
       name = "$(arch)/gems/#{@gemname}#{target_prefix}"
@@ -549,72 +533,25 @@ extend Module.new {
     return super unless @gemname
     super(*args) do |conf|
       conf.find do |s|
-        s.sub!(%r(^(srcdir *= *)\$\(top_srcdir\)/\.bundle/gems/[^/]+(?=/))) {
-          "gem_#{$&}\n" "#{$1}$(gem_srcdir)"
-        }
-        s.sub!(/^(TIMESTAMP_DIR *= *)\$\(extout\)/) {
-          "TARGET_TOPDIR = $(topdir)/.bundle\n" "#{$1}$(TARGET_TOPDIR)"
-        }
         s.sub!(/^(TARGET_SO_DIR *= *)\$\(RUBYARCHDIR\)/) {
-          "TARGET_GEM_DIR = $(TARGET_TOPDIR)/extensions/$(gem_platform)"\
-          "/$(ruby_version)#{$enable_shared ? '' : '-static'}/#{@gemname}\n"\
+          "TARGET_GEM_DIR = $(extout)/gems/$(arch)/#{@gemname}\n"\
           "#{$1}$(TARGET_GEM_DIR)$(target_prefix)"
         }
       end
-
-      gemlib = File.directory?("#{$top_srcdir}/#{@ext_prefix}/#{@gemname}/lib")
-      if conf.any? {|s| /^TARGET *= *\S/ =~ s}
-        conf << %{
-gem_platform = #{Gem::Platform.local}
+      conf.any? {|s| /^TARGET *= *\S/ =~ s} and conf << %{
 
 # default target
 all:
 
-gem = #{@gemname}
-
 build_complete = $(TARGET_GEM_DIR)/gem.build_complete
 install-so: build_complete
-clean-so:: clean-build_complete
-
 build_complete: $(build_complete)
 $(build_complete): $(TARGET_SO)
 	$(Q) $(TOUCH) $@
 
-clean-build_complete:
+clean-so::
 	-$(Q)$(RM) $(build_complete)
-
-install: gemspec
-clean: clean-gemspec
-
-gemspec = $(TARGET_TOPDIR)/specifications/$(gem).gemspec
-$(gemspec): $(gem_srcdir)/.bundled.$(gem).gemspec
-	$(Q) $(MAKEDIRS) $(@D)
-	$(Q) $(COPY) $(gem_srcdir)/.bundled.$(gem).gemspec $@
-
-gemspec: $(gemspec)
-
-clean-gemspec:
-	-$(Q)$(RM) $(gemspec)
 }
-
-        if gemlib
-          conf << %{
-install-rb: gemlib
-clean-rb:: clean-gemlib
-
-LN_S = #{config_string('LN_S')}
-CP_R = #{config_string('CP')} -r
-
-gemlib = $(TARGET_TOPDIR)/gems/$(gem)/lib
-gemlib:#{%{ $(gemlib)\n$(gemlib): $(gem_srcdir)/lib} if $nmake}
-	$(Q) #{@inplace ? '$(NULLCMD) ' : ''}$(RUBY) $(top_srcdir)/tool/ln_sr.rb -q -f -T $(gem_srcdir)/lib $(gemlib)
-
-clean-gemlib:
-	$(Q) $(#{@inplace ? 'NULLCMD' : 'RM_RF'}) $(gemlib)
-}
-        end
-      end
-
       conf
     end
   end
@@ -697,7 +634,7 @@ rubies = []
   end
 }
 
-Dir.chdir dir
+Dir.chdir ".."
 unless $destdir.to_s.empty?
   $mflags.defined?("DESTDIR") or $mflags << "DESTDIR=#{$destdir}"
 end

@@ -2,7 +2,9 @@
 require 'test/unit'
 require 'optparse/ac'
 
-class TestOptionParserAutoConf < Test::Unit::TestCase
+class TestOptionParser < Test::Unit::TestCase; end
+
+class TestOptionParser::AutoConf < Test::Unit::TestCase
   def setup
     @opt = OptionParser::AC.new
     @foo = @bar = self.class

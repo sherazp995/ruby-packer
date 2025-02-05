@@ -60,9 +60,6 @@
 #include "internal/static_assert.h"
 #include "ruby/internal/stdbool.h"
 #include "encindex.h"
-// --------- [Enclose.IO Hack start] ---------
-#include "enclose_io.h"
-// --------- [Enclose.IO Hack end] ---------
 #define isdirsep(x) ((x) == '/' || (x) == '\\')
 
 #if defined _MSC_VER && _MSC_VER <= 1200
@@ -921,25 +918,6 @@ rb_w32_sysinit(int *argc, char ***argv)
     //
     *argc = w32_cmdvector(GetCommandLineW(), argv, CP_UTF8, &OnigEncodingUTF_8);
 
-// --------- [Enclose.IO Hack start] ---------
-#ifdef ENCLOSE_IO_ENTRANCE
-		new_argc = *argc;
-		new_argv = *argv;
-		if (NULL == getenv("ENCLOSE_IO_USE_ORIGINAL_RUBY")) {
-				new_argv = (char **)malloc( (*argc + 1) * sizeof(char *));
-				assert(new_argv);
-				new_argv[0] = (*argv)[0];
-				new_argv[1] = ENCLOSE_IO_ENTRANCE;
-				for (i = 1; i < *argc; ++i) {
-					new_argv[2 + i - 1] = (*argv)[i];
-				}
-				new_argc = *argc + 1;
-
-				*argc = new_argc;
-				*argv = new_argv;
-		}
-#endif
-// --------- [Enclose.IO Hack end] ---------
     //
     // Now set up the correct time stuff
     //
@@ -5635,8 +5613,10 @@ filetime_to_nsec(const FILETIME *ft)
 
 /* License: Ruby's */
 static unsigned
-fileattr_to_unixmode(DWORD attr, const WCHAR *path, unsigned mode)
+fileattr_to_unixmode(DWORD attr, const WCHAR *path)
 {
+    unsigned mode = 0;
+
     if (attr & FILE_ATTRIBUTE_READONLY) {
 	mode |= S_IREAD;
     }
@@ -5644,10 +5624,7 @@ fileattr_to_unixmode(DWORD attr, const WCHAR *path, unsigned mode)
 	mode |= S_IREAD | S_IWRITE | S_IWUSR;
     }
 
-    if (mode & S_IFMT) {
-	/* format is already set */
-    }
-    else if (attr & FILE_ATTRIBUTE_REPARSE_POINT) {
+    if (attr & FILE_ATTRIBUTE_REPARSE_POINT) {
 	if (rb_w32_reparse_symlink_p(path))
 	    mode |= S_IFLNK | S_IEXEC;
 	else
@@ -5742,7 +5719,7 @@ stat_by_find(const WCHAR *path, struct stati128 *st)
 	return -1;
     }
     FindClose(h);
-    st->st_mode  = fileattr_to_unixmode(wfd.dwFileAttributes, path, 0);
+    st->st_mode  = fileattr_to_unixmode(wfd.dwFileAttributes, path);
     st->st_atime = filetime_to_unixtime(&wfd.ftLastAccessTime);
     st->st_atimensec = filetime_to_nsec(&wfd.ftLastAccessTime);
     st->st_mtime = filetime_to_unixtime(&wfd.ftLastWriteTime);
@@ -5775,15 +5752,6 @@ winnt_stat(const WCHAR *path, struct stati128 *st, BOOL lstat)
     if (f != INVALID_HANDLE_VALUE) {
 	DWORD attr = stati128_handle(f, st);
 	const DWORD len = get_final_path(f, finalname, numberof(finalname), 0);
-	unsigned mode = 0;
-	switch (GetFileType(f)) {
-	  case FILE_TYPE_CHAR:
-	    mode = S_IFCHR;
-	    break;
-	  case FILE_TYPE_PIPE:
-	    mode = S_IFIFO;
-	    break;
-	}
 	CloseHandle(f);
 	if (attr & FILE_ATTRIBUTE_REPARSE_POINT) {
 	    /* TODO: size in which encoding? */
@@ -5795,7 +5763,7 @@ winnt_stat(const WCHAR *path, struct stati128 *st, BOOL lstat)
 	if (attr & FILE_ATTRIBUTE_DIRECTORY) {
 	    if (check_valid_dir(path)) return -1;
 	}
-	st->st_mode = fileattr_to_unixmode(attr, path, mode);
+	st->st_mode = fileattr_to_unixmode(attr, path);
 	if (len) {
 	    finalname[min(len, numberof(finalname)-1)] = L'\0';
 	    path = finalname;
@@ -7132,10 +7100,7 @@ rb_w32_read(int fd, void *buf, size_t size)
 	return -1;
     }
 
-// --------- [Enclose.IO Hack start] ---------
-// TODO: https://github.com/pmq20/ruby-packer/issues/118
-    if (SQUASH_VALID_VFD(fd) || (_osfile(fd) & FTEXT)) {
-// --------- [Enclose.IO Hack end] ---------
+    if (_osfile(fd) & FTEXT) {
 	return _read(fd, buf, size);
     }
 

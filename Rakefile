@@ -2,6 +2,7 @@
 
 require 'rubygems'
 require 'bundler/setup'
+require 'logger'
 Bundler.require(:default)
 
 require 'rake/testtask'
@@ -16,6 +17,20 @@ file((Gem.win_platform? ? 'rubyc.exe' : 'rubyc') => rubyc_deps) do
 
   # don't include rubyc in rubyc
   rm_f(Gem.win_platform? ? 'rubyc.exe' : 'rubyc')
+
+  # Set platform-specific environment variables
+  if RUBY_PLATFORM =~ /darwin/
+    ENV['RUBYC_OPENSSL_TARGET'] = 'darwin64-x86_64-cc'
+    ENV['RUBYC_EXTRA_CFLAGS'] = '-arch x86_64'
+  else
+    ENV['RUBYC_OPENSSL_TARGET'] = 'linux-x86_64'
+    ENV['RUBYC_EXTRA_CFLAGS'] = '-fPIC'
+  end
+
+  # Set additional environment variables for the build
+  ENV['GDBM_CONFIGURE_OPTS'] = '--disable-dependency-tracking --disable-silent-rules --without-readline --without-docs'
+  ENV['CI'] = 'true'
+  ENV['MAKEFLAGS'] = '-j8'
 
   ruby_args = ['bin/rubyc', 'bin/rubyc', '-o', 'rubyc']
   if ENV['ENCLOSE_IO_RUBYC_ADDTIONAL_ARGS'].present?

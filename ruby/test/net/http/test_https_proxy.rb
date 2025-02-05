@@ -10,7 +10,7 @@ class HTTPSProxyTest < Test::Unit::TestCase
     begin
       OpenSSL
     rescue LoadError
-      omit 'autoload problem. see [ruby-dev:45021][Bug #5786]'
+      skip 'autoload problem. see [ruby-dev:45021][Bug #5786]'
     end
 
     TCPServer.open("127.0.0.1", 0) {|serv|

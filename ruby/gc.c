@@ -1738,7 +1738,6 @@ rb_objspace_alloc(void)
 }
 
 static void free_stack_chunks(mark_stack_t *);
-static void mark_stack_free_cache(mark_stack_t *);
 static void heap_page_free(rb_objspace_t *objspace, struct heap_page *page);
 
 void
@@ -1778,10 +1777,7 @@ rb_objspace_free(rb_objspace_t *objspace)
     }
     st_free_table(objspace->id_to_obj_tbl);
     st_free_table(objspace->obj_to_id_tbl);
-
     free_stack_chunks(&objspace->mark_stack);
-    mark_stack_free_cache(&objspace->mark_stack);
-
     free(objspace);
 }
 
@@ -6001,8 +5997,9 @@ pop_mark_stack_chunk(mark_stack_t *stack)
 }
 
 static void
-mark_stack_chunk_list_free(stack_chunk_t *chunk)
+free_stack_chunks(mark_stack_t *stack)
 {
+    stack_chunk_t *chunk = stack->chunk;
     stack_chunk_t *next = NULL;
 
     while (chunk != NULL) {
@@ -6010,20 +6007,6 @@ mark_stack_chunk_list_free(stack_chunk_t *chunk)
         free(chunk);
         chunk = next;
     }
-}
-
-static void
-free_stack_chunks(mark_stack_t *stack)
-{
-    mark_stack_chunk_list_free(stack->chunk);
-}
-
-static void
-mark_stack_free_cache(mark_stack_t *stack)
-{
-    mark_stack_chunk_list_free(stack->cache);
-    stack->cache_size = 0;
-    stack->unused_cache_size = 0;
 }
 
 static void
@@ -12035,21 +12018,20 @@ static int
 wmap_live_p(rb_objspace_t *objspace, VALUE obj)
 {
     if (SPECIAL_CONST_P(obj)) return TRUE;
-    /* If is_pointer_to_heap returns false, the page could be in the tomb heap
-     * or have already been freed. */
-    if (!is_pointer_to_heap(objspace, (void *)obj)) return FALSE;
+    if (is_pointer_to_heap(objspace, (void *)obj)) {
+        void *poisoned = asan_unpoison_object_temporary(obj);
 
-    void *poisoned = asan_unpoison_object_temporary(obj);
+        enum ruby_value_type t = BUILTIN_TYPE(obj);
+        int ret = (!(t == T_NONE || t >= T_FIXNUM || t == T_ICLASS) &&
+                   is_live_object(objspace, obj));
 
-    enum ruby_value_type t = BUILTIN_TYPE(obj);
-    int ret = (!(t == T_NONE || t >= T_FIXNUM || t == T_ICLASS) &&
-                is_live_object(objspace, obj));
+        if (poisoned) {
+            asan_poison_object(obj);
+        }
 
-    if (poisoned) {
-        asan_poison_object(obj);
+        return ret;
     }
-
-    return ret;
+    return TRUE;
 }
 
 static int

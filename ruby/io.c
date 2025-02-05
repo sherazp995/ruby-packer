@@ -182,10 +182,6 @@ off_t __syscall(quad_t number, ...);
 #define rename(f, t)	rb_w32_urename((f), (t))
 #endif
 
-// --------- [Enclose.IO Hack start] ---------
-#include "enclose_io.h"
-// --------- [Enclose.IO Hack end] ---------
-
 VALUE rb_cIO;
 VALUE rb_eEOFError;
 VALUE rb_eIOError;
@@ -9522,16 +9518,16 @@ rb_f_readlines(int argc, VALUE *argv, VALUE recv)
 
 /*
  *  call-seq:
- *     ARGF.readlines(sep = $/)     -> array
+ *     ARGF.readlines(sep=$/)     -> array
  *     ARGF.readlines(limit)      -> array
  *     ARGF.readlines(sep, limit) -> array
  *
- *     ARGF.to_a(sep = $/)     -> array
+ *     ARGF.to_a(sep=$/)     -> array
  *     ARGF.to_a(limit)      -> array
  *     ARGF.to_a(sep, limit) -> array
  *
- *  Reads each file in +ARGF+ in its entirety, returning an +Array+ containing
- *  lines from the files. Lines are assumed to be separated by _sep_.
+ *  Reads +ARGF+'s current file in its entirety, returning an +Array+ of its
+ *  lines, one line per element. Lines are assumed to be separated by _sep_.
  *
  *     lines = ARGF.readlines
  *     lines[0]                #=> "This is line one\n"

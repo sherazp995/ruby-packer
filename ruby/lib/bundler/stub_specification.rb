@@ -64,11 +64,9 @@ module Bundler
     end
 
     def full_gem_path
-      stub.full_gem_path
-    end
-
-    def full_gem_path=(path)
-      stub.full_gem_path = path
+      # deleted gems can have their stubs return nil, so in that case grab the
+      # expired path from the full spec
+      stub.full_gem_path || method_missing(:full_gem_path)
     end
 
     def full_require_paths

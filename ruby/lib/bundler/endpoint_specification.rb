@@ -3,7 +3,7 @@
 module Bundler
   # used for Creating Specifications from the Gemcutter Endpoint
   class EndpointSpecification < Gem::Specification
-    include MatchRemoteMetadata
+    include MatchPlatform
 
     attr_reader :name, :version, :platform, :checksum
     attr_accessor :source, :remote, :dependencies
@@ -12,7 +12,7 @@ module Bundler
       super()
       @name         = name
       @version      = Gem::Version.create version
-      @platform     = Gem::Platform.new(platform)
+      @platform     = platform
       @spec_fetcher = spec_fetcher
       @dependencies = dependencies.map {|dep, reqs| build_dependency(dep, reqs) }
 
@@ -22,12 +22,16 @@ module Bundler
       parse_metadata(metadata)
     end
 
-    def fetch_platform
-      @platform
+    def required_ruby_version
+      @required_ruby_version ||= _remote_specification.required_ruby_version
     end
 
-    def identifier
-      @__identifier ||= [name, version, platform.to_s]
+    def required_rubygems_version
+      @required_rubygems_version ||= _remote_specification.required_rubygems_version
+    end
+
+    def fetch_platform
+      @platform
     end
 
     # needed for standalone, load required_paths from local gemspec

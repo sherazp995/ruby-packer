@@ -4,25 +4,41 @@ module Bundler
   class Resolver
     class SpecGroup
       attr_accessor :name, :version, :source
-      attr_accessor :activated_platforms, :force_ruby_platform
+      attr_accessor :activated_platforms
 
-      def initialize(specs, relevant_platforms)
-        @exemplary_spec = specs.first
-        @name = @exemplary_spec.name
-        @version = @exemplary_spec.version
-        @source = @exemplary_spec.source
+      def self.create_for(specs, all_platforms, specific_platform)
+        specific_platform_specs = specs[specific_platform]
+        return unless specific_platform_specs.any?
+
+        platforms = all_platforms.select {|p| specs[p].any? }
+
+        new(specific_platform_specs.first, specs, platforms)
+      end
+
+      def initialize(exemplary_spec, specs, relevant_platforms)
+        @exemplary_spec = exemplary_spec
+        @name = exemplary_spec.name
+        @version = exemplary_spec.version
+        @source = exemplary_spec.source
 
         @activated_platforms = relevant_platforms
+        @dependencies = Hash.new do |dependencies, platforms|
+          dependencies[platforms] = dependencies_for(platforms)
+        end
         @specs = specs
       end
 
       def to_specs
-        @specs.map do |s|
-          lazy_spec = LazySpecification.new(name, version, s.platform, source)
-          lazy_spec.force_ruby_platform = force_ruby_platform
-          lazy_spec.dependencies.replace s.dependencies
-          lazy_spec
-        end
+        activated_platforms.map do |p|
+          specs = @specs[p]
+          next unless specs.any?
+
+          specs.map do |s|
+            lazy_spec = LazySpecification.new(name, version, s.platform, source)
+            lazy_spec.dependencies.replace s.dependencies
+            lazy_spec
+          end
+        end.flatten.compact.uniq
       end
 
       def to_s
@@ -31,9 +47,7 @@ module Bundler
       end
 
       def dependencies_for_activated_platforms
-        @dependencies_for_activated_platforms ||= @specs.map do |spec|
-          __dependencies(spec) + metadata_dependencies(spec)
-        end.flatten.uniq
+        @dependencies[activated_platforms]
       end
 
       def ==(other)
@@ -64,28 +78,32 @@ module Bundler
 
       private
 
-      def __dependencies(spec)
+      def dependencies_for(platforms)
+        platforms.map do |platform|
+          __dependencies(platform) + metadata_dependencies(platform)
+        end.flatten
+      end
+
+      def __dependencies(platform)
         dependencies = []
-        spec.dependencies.each do |dep|
+        @specs[platform].first.dependencies.each do |dep|
           next if dep.type == :development
-          dependencies << Dependency.new(dep.name, dep.requirement)
+          dependencies << DepProxy.get_proxy(dep, platform)
         end
         dependencies
       end
 
-      def metadata_dependencies(spec)
+      def metadata_dependencies(platform)
+        spec = @specs[platform].first
         return [] if spec.is_a?(LazySpecification)
-
-        [
-          metadata_dependency("Ruby", spec.required_ruby_version),
-          metadata_dependency("RubyGems", spec.required_rubygems_version),
-        ].compact
-      end
-
-      def metadata_dependency(name, requirement)
-        return if requirement.nil? || requirement.none?
-
-        Dependency.new("#{name}\0", requirement)
+        dependencies = []
+        if !spec.required_ruby_version.nil? && !spec.required_ruby_version.none?
+          dependencies << DepProxy.get_proxy(Gem::Dependency.new("Ruby\0", spec.required_ruby_version), platform)
+        end
+        if !spec.required_rubygems_version.nil? && !spec.required_rubygems_version.none?
+          dependencies << DepProxy.get_proxy(Gem::Dependency.new("RubyGems\0", spec.required_rubygems_version), platform)
+        end
+        dependencies
       end
     end
   end

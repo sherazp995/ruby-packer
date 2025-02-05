@@ -218,13 +218,6 @@ A,B,C
     assert_equal([:one, :two_three], csv.headers)
   end
 
-  def test_builtin_symbol_raw_converter
-    csv = CSV.parse( "a b,c d", headers:           true,
-                     return_headers:    true,
-                     header_converters: :symbol_raw )
-    assert_equal([:"a b", :"c d"], csv.headers)
-  end
-
   def test_builtin_symbol_converter_with_punctuation
     csv = CSV.parse( "One, Two & Three ($)", headers:           true,
                                              return_headers:    true,
@@ -235,7 +228,7 @@ A,B,C
   def test_builtin_converters_with_blank_header
     csv = CSV.parse( "one,,three", headers:           true,
                                    return_headers:    true,
-                                   header_converters: [:downcase, :symbol, :symbol_raw] )
+                                   header_converters: [:downcase, :symbol] )
     assert_equal([:one, nil, :three], csv.headers)
   end
 

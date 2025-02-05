@@ -3,7 +3,7 @@
 
 require 'test/unit'
 
-class TestMethodInlineCache < Test::Unit::TestCase
+class TestMethod < Test::Unit::TestCase
   def test_alias
     m0 = Module.new do
       def foo; :M0 end

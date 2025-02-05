@@ -32,11 +32,7 @@ module Bundler
           file << spec.to_gemfile
         end
       else
-        File.open(File.expand_path("../templates/#{gemfile}", __dir__), "r") do |template|
-          File.open(gemfile, "wb") do |destination|
-            IO.copy_stream(template, destination)
-          end
-        end
+        FileUtils.cp(File.expand_path("../../templates/#{gemfile}", __FILE__), gemfile)
       end
 
       puts "Writing new #{gemfile} to #{SharedHelpers.pwd}/#{gemfile}"

@@ -875,4 +875,66 @@ class Compiler
       end
     end
   end
+
+  def stuff_openssl
+    stuff 'openssl' do
+      Dir['**/configure.ac'].each do |x|
+        File.utime(Time.at(0), Time.at(0), x)
+      end
+      Dir['**/*.m4'].each do |x|
+        File.utime(Time.at(0), Time.at(0), x)
+      end
+      
+      if Gem.win_platform?
+        @utils.run(compile_env,
+                  'perl',
+                  'Configure',
+                  'VC-WIN64A',
+                  'no-shared',
+                  "--openssldir=#{@options[:openssl_dir]}",
+                  "--prefix=#{@local_build}")
+        @utils.run(compile_env, "nmake #{@options[:nmake_args]}")
+        @utils.run(compile_env, 'nmake install_sw')
+      elsif `uname -m`.start_with?('arm64')
+        @utils.run(compile_env,
+                  './Configure',
+                  'darwin64-arm64-cc',
+                  'enable-ec_nistp_64_gcc_128',
+                  'no-zlib',
+                  'no-ssl3',
+                  'no-ssl3-method',
+                  'no-shared',
+                  "--openssldir=#{@options[:openssl_dir]}",
+                  "--prefix=#{@local_build}")
+        @utils.run(compile_env, "make #{@options[:make_args]}")
+        @utils.run(compile_env, 'make install_sw')
+      elsif `uname -s`.strip == 'Linux'
+        @utils.run(compile_env,
+                  './Configure',
+                  'linux-x86_64',
+                  'enable-ec_nistp_64_gcc_128',
+                  'no-zlib',
+                  'no-ssl3',
+                  'no-ssl3-method',
+                  'no-shared',
+                  "--openssldir=#{@options[:openssl_dir]}",
+                  "--prefix=#{@local_build}")
+        @utils.run(compile_env, "make #{@options[:make_args]}")
+        @utils.run(compile_env, 'make install_sw')
+      else
+        @utils.run(compile_env,
+                  './Configure',
+                  'darwin64-x86_64-cc',
+                  'enable-ec_nistp_64_gcc_128',
+                  'no-zlib',
+                  'no-ssl3',
+                  'no-ssl3-method',
+                  'no-shared',
+                  "--openssldir=#{@options[:openssl_dir]}",
+                  "--prefix=#{@local_build}")
+        @utils.run(compile_env, "make #{@options[:make_args]}")
+        @utils.run(compile_env, 'make install_sw')
+      end
+    end
+  end
 end

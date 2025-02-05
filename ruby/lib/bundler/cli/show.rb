@@ -18,7 +18,7 @@ module Bundler
 
       if gem_name
         if gem_name == "bundler"
-          path = File.expand_path("../../..", __dir__)
+          path = File.expand_path("../../../..", __FILE__)
         else
           spec = Bundler::CLI::Common.select_spec(gem_name, :regex_match)
           return unless spec

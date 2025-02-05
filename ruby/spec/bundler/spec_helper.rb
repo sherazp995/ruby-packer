@@ -60,8 +60,6 @@ RSpec.configure do |config|
 
   config.expect_with :rspec do |c|
     c.syntax = :expect
-
-    c.max_formatted_output_length = 1000
   end
 
   config.mock_with :rspec do |mocks|
@@ -76,8 +74,6 @@ RSpec.configure do |config|
     ENV["BUNDLER_SPEC_RUN"] = "true"
     ENV["BUNDLER_NO_OLD_RUBYGEMS_WARNING"] = "true"
     ENV["BUNDLE_USER_CONFIG"] = ENV["BUNDLE_USER_CACHE"] = ENV["BUNDLE_USER_PLUGIN"] = nil
-    ENV["BUNDLE_APP_CONFIG"] = nil
-    ENV["BUNDLE_SILENCE_ROOT_WARNING"] = nil
     ENV["RUBYGEMS_GEMDEPS"] = nil
     ENV["XDG_CONFIG_HOME"] = nil
     ENV["GEMRC"] = nil
@@ -115,10 +111,6 @@ RSpec.configure do |config|
     ensure
       reset!
     end
-  end
-
-  config.before :each, :sudo => true do
-    Spec::Sudo.write_safe_config
   end
 
   config.after :suite do

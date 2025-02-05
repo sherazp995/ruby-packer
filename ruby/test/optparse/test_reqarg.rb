@@ -1,7 +1,7 @@
 # frozen_string_literal: false
 require_relative 'test_optparse'
 
-module TestOptionParserReqArg
+module TestOptionParser::ReqArg
   def setup
     super
     @opt.def_option "--with_underscore=VAL" do |x| @flag = x end
@@ -9,7 +9,7 @@ module TestOptionParserReqArg
   end
 
   class Def1 < TestOptionParser
-    include TestOptionParserReqArg
+    include ReqArg
     def setup
       super
       @opt.def_option("-xVAL") {|x| @flag = x}
@@ -19,21 +19,21 @@ module TestOptionParserReqArg
     end
   end
   class Def2 < TestOptionParser
-    include TestOptionParserReqArg
+    include ReqArg
     def setup
       super
       @opt.def_option("-x", "--option=VAL") {|x| @flag = x}
     end
   end
   class Def3 < TestOptionParser
-    include TestOptionParserReqArg
+    include ReqArg
     def setup
       super
       @opt.def_option("--option=VAL", "-x") {|x| @flag = x}
     end
   end
   class Def4 < TestOptionParser
-    include TestOptionParserReqArg
+    include ReqArg
     def setup
       super
       @opt.def_option("-xVAL", "--option=VAL") {|x| @flag = x}

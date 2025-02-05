@@ -7,43 +7,40 @@ module Bundler
     include Enumerable
     include TSort
 
-    attr_reader :incomplete_specs
-
-    def initialize(specs, incomplete_specs = [])
+    def initialize(specs)
       @specs = specs
-      @incomplete_specs = incomplete_specs
     end
 
-    def for(dependencies, check = false, platforms = [nil])
-      handled = ["bundler"].product(platforms).map {|k| [k, true] }.to_h
-      deps = dependencies.product(platforms)
+    def for(dependencies, check = false, match_current_platform = false)
+      handled = []
+      deps = dependencies.dup
       specs = []
 
       loop do
         break unless dep = deps.shift
+        next if handled.any?{|d| d.name == dep.name && (match_current_platform || d.__platform == dep.__platform) } || dep.name == "bundler"
 
-        name = dep[0].name
-        platform = dep[1]
+        handled << dep
 
-        key = [name, platform]
-        next if handled.key?(key)
-
-        handled[key] = true
-
-        specs_for_dep = specs_for_dependency(*dep)
+        specs_for_dep = spec_for_dependency(dep, match_current_platform)
         if specs_for_dep.any?
-          specs.concat(specs_for_dep)
+          match_current_platform ? specs += specs_for_dep : specs |= specs_for_dep
 
           specs_for_dep.first.dependencies.each do |d|
             next if d.type == :development
-            deps << [d, dep[1]]
+            d = DepProxy.get_proxy(d, dep.__platform) unless match_current_platform
+            deps << d
           end
         elsif check
-          @incomplete_specs += lookup[name]
+          return false
         end
       end
 
-      specs
+      if spec = lookup["bundler"].first
+        specs << spec
+      end
+
+      check ? true : specs
     end
 
     def [](key)
@@ -53,12 +50,6 @@ module Bundler
 
     def []=(key, value)
       @specs << value
-      @lookup = nil
-      @sorted = nil
-    end
-
-    def delete(spec)
-      @specs.delete(spec)
       @lookup = nil
       @sorted = nil
     end
@@ -76,9 +67,14 @@ module Bundler
     end
 
     def materialize(deps)
-      materialized = self.for(deps, true)
+      materialized = self.for(deps, false, true)
 
-      SpecSet.new(materialized, incomplete_specs)
+      materialized.map! do |s|
+        next s unless s.is_a?(LazySpecification)
+        s.source.local!
+        s.__materialize__ || s
+      end
+      SpecSet.new(materialized)
     end
 
     # Materialize for all the specs in the spec set, regardless of what platform they're for
@@ -87,17 +83,12 @@ module Bundler
     def materialized_for_all_platforms
       @specs.map do |s|
         next s unless s.is_a?(LazySpecification)
+        s.source.local!
         s.source.remote!
-        spec = s.materialize_for_installation
+        spec = s.__materialize__
         raise GemNotFound, "Could not find #{s.full_name} in any of the sources" unless spec
         spec
       end
-    end
-
-    def incomplete_ruby_specs?(deps)
-      self.for(deps, true, [Gem::Platform::RUBY])
-
-      @incomplete_specs.any?
     end
 
     def missing_specs
@@ -114,18 +105,8 @@ module Bundler
       SpecSet.new(arr)
     end
 
-    def -(other)
-      SpecSet.new(to_a - other.to_a)
-    end
-
     def find_by_name_and_platform(name, platform)
       @specs.detect {|spec| spec.name == name && spec.match_platform(platform) }
-    end
-
-    def delete_by_name_and_version(name, version)
-      @specs.reject! {|spec| spec.name == name && spec.version == version }
-      @lookup = nil
-      @sorted = nil
     end
 
     def what_required(spec)
@@ -176,7 +157,7 @@ module Bundler
     def lookup
       @lookup ||= begin
         lookup = Hash.new {|h, k| h[k] = [] }
-        @specs.each do |s|
+        Index.sort_specs(@specs).reverse_each do |s|
           lookup[s.name] << s
         end
         lookup
@@ -188,13 +169,12 @@ module Bundler
       @specs.sort_by(&:name).each {|s| yield s }
     end
 
-    def specs_for_dependency(dep, platform)
-      specs_for_name = lookup[dep.name]
-      if platform.nil?
-        matching_specs = specs_for_name.map {|s| s.materialize_for_installation if Gem::Platform.match_spec?(s) }.compact
-        GemHelpers.sort_best_platform_match(matching_specs, Bundler.local_platform)
+    def spec_for_dependency(dep, match_current_platform)
+      specs_for_platforms = lookup[dep.name]
+      if match_current_platform
+        GemHelpers.select_best_platform_match(specs_for_platforms.select{|s| Gem::Platform.match_spec?(s) }, Bundler.local_platform)
       else
-        GemHelpers.select_best_platform_match(specs_for_name, dep.force_ruby_platform ? Gem::Platform::RUBY : platform)
+        GemHelpers.select_best_platform_match(specs_for_platforms, dep.__platform)
       end
     end
 

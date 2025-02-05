@@ -94,8 +94,7 @@ RSpec.describe "bundle install" do
   end
 
   context "when ruby version is specified in gemspec and gemfile" do
-    it "installs when patch level is not specified and the version matches",
-      :if => RUBY_PATCHLEVEL >= 0 do
+    it "installs when patch level is not specified and the version matches" do
       build_lib("foo", :path => bundled_app) do |s|
         s.required_ruby_version = "~> #{RUBY_VERSION}.0"
       end

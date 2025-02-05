@@ -427,8 +427,9 @@ RSpec.describe "Bundler::RubyVersion and its subclasses" do
       end
 
       describe "#version" do
-        it "should return the value of Gem.ruby_version as a string" do
-          expect(subject.versions).to eq([Gem.ruby_version.to_s])
+        it "should return a copy of the value of RUBY_VERSION" do
+          expect(subject.versions).to eq([RUBY_VERSION])
+          expect(subject.versions.first).to_not be(RUBY_VERSION)
         end
       end
 
@@ -445,12 +446,13 @@ RSpec.describe "Bundler::RubyVersion and its subclasses" do
       describe "#engine_version" do
         context "engine is ruby" do
           before do
-            allow(Gem).to receive(:ruby_version).and_return(Gem::Version.new("2.2.4"))
+            stub_const("RUBY_ENGINE_VERSION", "2.2.4")
             stub_const("RUBY_ENGINE", "ruby")
           end
 
-          it "should return the value of Gem.ruby_version as a string" do
+          it "should return a copy of the value of RUBY_ENGINE_VERSION" do
             expect(bundler_system_ruby_version.engine_versions).to eq(["2.2.4"])
+            expect(bundler_system_ruby_version.engine_versions.first).to_not be(RUBY_ENGINE_VERSION)
           end
         end
 
@@ -493,6 +495,32 @@ RSpec.describe "Bundler::RubyVersion and its subclasses" do
       describe "#patchlevel" do
         it "should return a string with the value of RUBY_PATCHLEVEL" do
           expect(subject.patchlevel).to eq(RUBY_PATCHLEVEL.to_s)
+        end
+      end
+    end
+
+    describe "#to_gem_version_with_patchlevel" do
+      shared_examples_for "the patchlevel is omitted" do
+        it "does not include a patch level" do
+          expect(subject.to_gem_version_with_patchlevel.to_s).to eq(version)
+        end
+      end
+
+      context "with nil patch number" do
+        let(:patchlevel) { nil }
+
+        it_behaves_like "the patchlevel is omitted"
+      end
+
+      context "with negative patch number" do
+        let(:patchlevel) { -1 }
+
+        it_behaves_like "the patchlevel is omitted"
+      end
+
+      context "with a valid patch number" do
+        it "uses the specified patchlevel as patchlevel" do
+          expect(subject.to_gem_version_with_patchlevel.to_s).to eq("#{version}.#{patchlevel}")
         end
       end
     end

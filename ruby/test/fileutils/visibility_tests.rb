@@ -2,11 +2,14 @@
 require 'test/unit'
 require 'fileutils'
 
+class TestFileUtilsInc < Test::Unit::TestCase
+end
+
 ##
 # These tests are reused in the FileUtils::Verbose, FileUtils::NoWrite and
 # FileUtils::DryRun tests
 
-module TestFileUtilsIncVisibility
+module TestFileUtilsInc::Visibility
 
   FileUtils::METHODS.each do |m|
     define_method "test_singleton_visibility_#{m}" do

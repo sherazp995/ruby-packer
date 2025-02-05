@@ -26,7 +26,7 @@
 # include <sys/pstat.h>
 #endif
 
-#if (defined(LOAD_RELATIVE) || defined(__MACH__)) && defined(HAVE_DLADDR)
+#if defined(LOAD_RELATIVE) && defined(HAVE_DLADDR)
 # include <dlfcn.h>
 #endif
 
@@ -72,10 +72,6 @@
 #ifndef O_ACCMODE
 # define O_ACCMODE (O_RDONLY | O_WRONLY | O_RDWR)
 #endif
-
-// --------- [Enclose.IO Hack start] ---------
-#include "enclose_io.h"
-// --------- [Enclose.IO Hack end] ---------
 
 void Init_ruby_description(void);
 
@@ -573,7 +569,7 @@ str_conv_enc(VALUE str, rb_encoding *from, rb_encoding *to)
 
 void ruby_init_loadpath(void);
 
-#if defined(LOAD_RELATIVE) || defined(__MACH__)
+#if defined(LOAD_RELATIVE)
 static VALUE
 runtime_libruby_path(void)
 {
@@ -654,10 +650,6 @@ runtime_libruby_path(void)
 #define INITIAL_LOAD_PATH_MARK rb_intern_const("@gem_prelude_index")
 
 VALUE ruby_archlibdir_path, ruby_prefix_path;
-#if defined(__MACH__)
-// A path to libruby.dylib itself or where it's statically linked to.
-VALUE rb_libruby_selfpath;
-#endif
 
 void
 ruby_init_loadpath(void)
@@ -665,17 +657,6 @@ ruby_init_loadpath(void)
     VALUE load_path, archlibdir = 0;
     ID id_initial_load_path_mark;
     const char *paths = ruby_initial_load_paths;
-// --------- [Enclose.IO Hack start] ---------
-#ifndef ENCLOSE_IO_RUBYC_BUILD_PASS2
-// --------- [Enclose.IO Hack end] ---------
-#if defined(LOAD_RELATIVE) || defined(__MACH__)
-    VALUE libruby_path = runtime_libruby_path();
-# if defined(__MACH__)
-    rb_libruby_selfpath = libruby_path;
-    rb_gc_register_address(&rb_libruby_selfpath);
-# endif
-#endif
-
 #if defined LOAD_RELATIVE
 #if !defined ENABLE_MULTIARCH
 # define RUBY_ARCH_PATH ""
@@ -689,7 +670,7 @@ ruby_init_loadpath(void)
     size_t baselen;
     const char *p;
 
-    sopath = libruby_path;
+    sopath = runtime_libruby_path();
     libpath = RSTRING_PTR(sopath);
 
     p = strrchr(libpath, '/');
@@ -748,16 +729,6 @@ ruby_init_loadpath(void)
 #define RUBY_RELATIVE(path, len) rubylib_path_new((path), (len))
 #define PREFIX_PATH() RUBY_RELATIVE(ruby_exec_prefix, exec_prefix_len)
 #endif
-// --------- [Enclose.IO Hack start] ---------
-#else // ifndef ENCLOSE_IO_RUBYC_BUILD_PASS2
-#define PREFIX_PATH() rb_str_new("/__enclose_io_memfs__", 21)
-#ifdef _WIN32
-#define RUBY_RELATIVE(path, len) rb_str_buf_cat(rb_str_buf_cat(rb_str_buf_new(21+(len)), "/__enclose_io_memfs__", 21), (path), (len))
-#else // ifdef _WIN32
-#define RUBY_RELATIVE(path, len) rubylib_path_new((path), (len))
-#endif // ifdef _WIN32
-#endif // ifndef ENCLOSE_IO_RUBYC_BUILD_PASS2
-// --------- [Enclose.IO Hack end] ---------
     rb_gc_register_address(&ruby_prefix_path);
     ruby_prefix_path = PREFIX_PATH();
     OBJ_FREEZE_RAW(ruby_prefix_path);

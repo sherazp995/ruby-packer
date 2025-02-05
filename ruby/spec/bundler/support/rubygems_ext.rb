@@ -18,12 +18,6 @@ module Spec
       gem_load_and_activate(gem_name, bin_container)
     end
 
-    def gem_load_and_possibly_install(gem_name, bin_container)
-      require_relative "switch_rubygems"
-
-      gem_load_activate_and_possibly_install(gem_name, bin_container)
-    end
-
     def gem_require(gem_name)
       gem_activate(gem_name)
       require gem_name
@@ -105,21 +99,9 @@ module Spec
       abort "We couldn't activate #{gem_name} (#{e.requirement}). Run `gem install #{gem_name}:'#{e.requirement}'`"
     end
 
-    def gem_load_activate_and_possibly_install(gem_name, bin_container)
-      gem_activate_and_possibly_install(gem_name)
-      load Gem.bin_path(gem_name, bin_container)
-    end
-
-    def gem_activate_and_possibly_install(gem_name)
-      gem_activate(gem_name)
-    rescue Gem::LoadError => e
-      Gem.install(gem_name, e.requirement)
-      retry
-    end
-
     def gem_activate(gem_name)
       require "bundler"
-      gem_requirement = Bundler::LockfileParser.new(File.read(dev_lockfile)).specs.find {|spec| spec.name == gem_name }.version
+      gem_requirement = Bundler::LockfileParser.new(File.read(dev_lockfile)).dependencies[gem_name]&.requirement
       gem gem_name, gem_requirement
     end
 
@@ -137,8 +119,8 @@ module Spec
         ENV["BUNDLE_PATH__SYSTEM"] = "true"
       end
 
-      puts `#{Gem.ruby} #{File.expand_path("support/bundle.rb", Path.spec_dir)} install --verbose`
-      raise unless $?.success?
+      output = `#{Gem.ruby} #{File.expand_path("support/bundle.rb", Path.spec_dir)} install --verbose`
+      raise "Error when installing gems in #{gemfile}: #{output}" unless $?.success?
     ensure
       if path
         ENV["BUNDLE_PATH"] = old_path

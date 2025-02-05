@@ -32,7 +32,7 @@ module Bundler::Molinillo
     #   all belong to the same graph.
     # @return [Array<Vertex>] The sorted vertices.
     def self.tsort(vertices)
-      Bundler::TSort.tsort(
+      TSort.tsort(
         lambda { |b| vertices.each(&b) },
         lambda { |v, &b| (v.successors & vertices).each(&b) }
       )
