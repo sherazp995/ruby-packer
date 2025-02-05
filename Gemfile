@@ -3,7 +3,7 @@
 source 'https://rubygems.org'
 
 # use .ruby-version
-ruby File.read(".ruby-version").strip.sub("ruby-", '')
+ruby '3.1.2'
 
 gem 'activesupport', '~> 6.0', '>= 6.0.3.2', require: 'active_support/all'
 gem 'minitest', '~> 5.14', '>= 5.14.1'
